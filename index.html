@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Private Video Call</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #071024; color: #fff; text-align: center; padding: 20px; }
+  input, button { padding: 10px; margin: 5px; border-radius: 5px; border: none; }
+  #videos { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+  video { width: 45%; border-radius: 10px; background: #000; }
+</style>
+</head>
+<body>
+
+<h2>Private Video Call</h2>
+
+<div id="setup">
+  <button id="createBtn">Create Call Link</button>
+  <input type="text" id="joinId" placeholder="Enter Call ID">
+  <input type="text" id="pin" placeholder="Enter 4-digit PIN">
+  <button id="joinBtn">Join Call</button>
+</div>
+
+<div id="videos">
+  <video id="myVideo" autoplay muted></video>
+  <video id="peerVideo" autoplay></video>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
+<script>
+let peer, localStream;
+
+// Camera & Mic access
+navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+.then(stream => {
+  localStream = stream;
+  document.getElementById('myVideo').srcObject = stream;
+})
+.catch(err => alert('Camera/Mic access chahiye: ' + err));
+
+// Create Call
+document.getElementById('createBtn').onclick = () => {
+  const callId = 'call-' + Math.floor(Math.random() * 10000);
+  const pin = Math.floor(1000 + Math.random() * 9000);
+  alert('Share karo ye Call ID: ' + callId + '\nPIN: ' + pin);
+
+  peer = new Peer(callId, { debug: 2 });
+
+  peer.on('open', id => console.log('Call ID:', id));
+  peer.on('call', call => {
+    const enteredPin = prompt('Enter your PIN:');
+    if (enteredPin == pin) {
+      call.answer(localStream);
+      call.on('stream', remoteStream => {
+        document.getElementById('peerVideo').srcObject = remoteStream;
+      });
+    } else {
+      alert('GALAT PIN!');
+    }
+  });
+};
+
+// Join Call
+document.getElementById('joinBtn').onclick = () => {
+  const callId = document.getElementById('joinId').value;
+  const pin = document.getElementById('pin').value;
+  if (!callId || !pin) return alert('Call ID aur PIN dono bharo');
+
+  peer = new Peer({ debug: 2 });
+
+  peer.on('open', id => {
+    const call = peer.call(callId, localStream);
+    call.on('stream', remoteStream => {
+      document.getElementById('peerVideo').srcObject = remoteStream;
+    });
+  });
+};
+</script>
+
+</body>
+</html>
